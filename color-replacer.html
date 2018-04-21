@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+input {
+    display: block;
+}
+
+span {
+    display: block;
+}
+</style>
+</head>
+<body>
+
+<canvas id="output-image"></canvas>
+<input id="hue-level-grey-picker" type="range" min="1" max="100" value="50"/>
+<span id="hue-level-grey-value"></span>
+<input id="hue-level-reduce-picker" type="range" min="1" max="100" value="30"/>
+<span id="hue-level-reduce-value"></span>
+<input id="hue-level-reduce-amount-picker" type="range" min="1" max="100" value="30"/>
+<span id="hue-level-reduce-amount-value"></span>
+
+<script>
+function rgbToHsv(r, g, b) {
+  r /= 255, g /= 255, b /= 255;
+
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, v = max;
+
+  var d = max - min;
+  s = max == 0 ? 0 : d / max;
+
+  if (max == min) {
+    h = 0; // achromatic
+  } else {
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+
+    h /= 6;
+  }
+
+  return [ h, s, v ];
+}
+
+function hsvToRgb(h, s, v) {
+  var r, g, b;
+
+  var i = Math.floor(h * 6);
+  var f = h * 6 - i;
+  var p = v * (1 - s);
+  var q = v * (1 - f * s);
+  var t = v * (1 - (1 - f) * s);
+
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+  }
+
+  return [ r * 255, g * 255, b * 255 ];
+}
+
+var canvas = document.getElementById('output-image');
+var ctx = canvas.getContext('2d');
+
+var img = new Image();
+img.src = 'changed-blue-robe-hooded.png';
+img.onload = function() {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    img.style.display = 'none';
+
+    var hueLevelGreyPicker = document.getElementById('hue-level-grey-picker');
+    var hueLevelGreyValue = document.getElementById('hue-level-grey-value');
+    var hueLevelReducePicker = document.getElementById('hue-level-reduce-picker');
+    var hueLevelReduceValue = document.getElementById('hue-level-reduce-value');
+    var hueLevelReduceAmountPicker = document.getElementById('hue-level-reduce-amount-picker');
+    var hueLevelReduceAmountValue = document.getElementById('hue-level-reduce-amount-value');
+
+    function refresh() {
+        draw(img, hueLevelGreyPicker.value / 100, hueLevelReducePicker.value / 100, hueLevelReduceAmountPicker.value / 100);
+        hueLevelGreyValue.innerHTML = "Hue threshold: " + hueLevelGreyPicker.value / 100;
+        hueLevelReduceValue.innerHTML = "Reduce threshold: " + hueLevelReducePicker.value / 100;
+        hueLevelReduceAmountValue.innerHTML = "Reduce by: " + hueLevelReduceAmountPicker.value / 100;
+    };
+
+    hueLevelGreyPicker.oninput = refresh;
+    hueLevelReducePicker.oninput = refresh;
+    hueLevelReduceAmountPicker.oninput = refresh;
+
+    refresh();
+};
+
+function draw(img, hueLevelGrey, hueLevelReduce, hueLevelReduceAmount) {
+    ctx.drawImage(img, 0, 0);
+    var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    var data = imageData.data;
+
+    for (var i = 0; i < data.length; i += 4) {
+        var hsv = rgbToHsv(data[i], data[i + 1], data[i + 2]);
+        if (hsv[0] > hueLevelGrey) {
+            var rgb = hsvToRgb(hsv[0] - 0.3, hsv[1], hsv[2]);
+            var avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+
+            data[i]     = rgb[0]; // red
+            data[i + 1] = rgb[1]; // green
+            data[i + 2] = rgb[2]; // blue
+
+            data[i]     = avg;
+            data[i + 1] = avg;
+            data[i + 2] = avg;
+        } else if (hsv[0] > hueLevelReduce) {
+            var amount =  hueLevelReduce < hueLevelReduceAmount ? hueLevelReduce : hueLevelReduceAmount;
+            var rgb = hsvToRgb(hsv[0] - amount, hsv[1], hsv[2]);
+
+            data[i]     = rgb[0]; // red
+            data[i + 1] = rgb[1]; // green
+            data[i + 2] = rgb[2]; // blue
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
+}
+
+</script>
+
+</body>
+</html>
