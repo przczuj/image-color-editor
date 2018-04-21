@@ -117,8 +117,8 @@ function draw(img, hueLevelGrey, hueLevelReduce, hueLevelReduceAmount) {
             data[i + 1] = avg;
             data[i + 2] = avg;
         } else if (hsv[0] > hueLevelReduce) {
-            var amount =  hueLevelReduce < hueLevelReduceAmount ? hueLevelReduce : hueLevelReduceAmount;
-            var rgb = hsvToRgb(hsv[0] - amount, hsv[1], hsv[2]);
+            var hue =  hsv[0] - hueLevelReduceAmount;
+            var rgb = hsvToRgb(hue > 0 ? hue : 0, hsv[1], hsv[2]);
 
             data[i]     = rgb[0]; // red
             data[i + 1] = rgb[1]; // green
